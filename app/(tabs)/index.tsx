@@ -105,15 +105,20 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Hero IU Ring */}
-        <View style={styles.ringSection}>
-          <Ring progress={progress} size={220} strokeWidth={14}>
-            <Text style={styles.ringPercent}>{progressPct}%</Text>
-            <Text style={styles.ringGoal}>of {goalIU.toLocaleString()} IU</Text>
-          </Ring>
-          <Text style={styles.todayIU}>
-            {todayIU > 0 ? formatIURange(todayIU) : '0 IU'} today
-          </Text>
+        {/* Hero IU Ring Card — matches v8 mockup layout */}
+        <View style={styles.ringCard}>
+          <View style={styles.ringCardInner}>
+            <Ring progress={progress} size={110} strokeWidth={10}>
+              <Text style={styles.ringPercent}>{progressPct}%</Text>
+              <Text style={styles.ringGoalSmall}>of {goalIU.toLocaleString()} IU</Text>
+            </Ring>
+            <View style={styles.ringInfo}>
+              <Text style={styles.todayIU}>
+                {todayIU > 0 ? formatIURange(todayIU) : '0 IU'}
+              </Text>
+              <Text style={styles.todayIULabel}>IU today {'\u00B7'} estimated</Text>
+            </View>
+          </View>
           <Text style={styles.disclaimer}>
             Estimates based on population averages — individual synthesis varies.
           </Text>
@@ -164,9 +169,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Habit Calendar */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>This week</Text>
+        <View style={styles.habitCard}>
+          <Text style={styles.cardLabel}>This week</Text>
           <HabitCalendar days={habitDays} />
+          <Text style={styles.cloudDayNote}>
+            {'\u2601\uFE0F'} = cloud day — streak auto-protected when UV {'<'} 2
+          </Text>
         </View>
 
         {/* Leaderboard Snippet */}
@@ -236,31 +244,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.orange,
   },
-  ringSection: {
-    alignItems: 'center',
-    marginBottom: 28,
+  ringCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
     gap: 12,
   },
+  ringCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
   ringPercent: {
-    fontSize: 48,
+    fontSize: 17,
     fontWeight: '800',
     color: Colors.white,
   },
-  ringGoal: {
-    fontSize: 14,
-    color: Colors.grey,
-    fontWeight: '500',
+  ringGoalSmall: {
+    fontSize: 9,
+    color: Colors.dim,
+  },
+  ringInfo: {
+    flex: 1,
+    gap: 4,
   },
   todayIU: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: Colors.white,
-    marginTop: 4,
+  },
+  todayIULabel: {
+    fontSize: 11,
+    color: Colors.dim,
   },
   disclaimer: {
     fontSize: 10,
     color: Colors.dim,
-    textAlign: 'center',
     fontStyle: 'italic',
   },
   card: {
@@ -329,16 +351,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.orange,
   },
-  section: {
+  habitCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
     marginBottom: 14,
     gap: 10,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+  cloudDayNote: {
+    fontSize: 10,
     color: Colors.dim,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginTop: 2,
   },
   leaderRow: {
     flexDirection: 'row',

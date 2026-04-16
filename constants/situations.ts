@@ -1,6 +1,7 @@
 export interface ExposureSituation {
   id: string;
   label: string;
+  sub: string;
   emoji: string;
   bsaMultiplier: number;
   description: string;
@@ -10,6 +11,7 @@ export const SITUATIONS: ExposureSituation[] = [
   {
     id: 'face_only',
     label: 'Solo la cara',
+    sub: 'Con abrigo o bufanda',
     emoji: '\uD83E\uDDE5',
     bsaMultiplier: 0.36,
     description: 'Face only',
@@ -17,6 +19,7 @@ export const SITUATIONS: ExposureSituation[] = [
   {
     id: 'face_arms',
     label: 'Cara + brazos',
+    sub: 'Camiseta, manga corta',
     emoji: '\uD83D\uDC55',
     bsaMultiplier: 1.0,
     description: 'Face + arms',
@@ -24,6 +27,7 @@ export const SITUATIONS: ExposureSituation[] = [
   {
     id: 'face_arms_legs',
     label: 'Cara + brazos + piernas',
+    sub: 'Pantal\u00F3n corto',
     emoji: '\uD83E\uDE73',
     bsaMultiplier: 1.4,
     description: 'Face + arms + legs',
@@ -31,6 +35,7 @@ export const SITUATIONS: ExposureSituation[] = [
   {
     id: 'torso',
     label: 'Torso al descubierto',
+    sub: 'Sin camiseta / top',
     emoji: '\uD83C\uDF1E',
     bsaMultiplier: 2.0,
     description: 'Torso exposed',
@@ -38,6 +43,7 @@ export const SITUATIONS: ExposureSituation[] = [
   {
     id: 'full_body',
     label: 'Casi todo el cuerpo',
+    sub: 'Playa / piscina',
     emoji: '\uD83C\uDFD6',
     bsaMultiplier: 3.0,
     description: 'Full body',

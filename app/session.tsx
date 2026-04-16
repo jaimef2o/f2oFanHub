@@ -139,11 +139,26 @@ export default function SessionScreen() {
         </Text>
         <View style={{ width: 24 }} />
       </View>
+      <Text style={styles.headerSubline}>
+        UV {currentUV.toFixed(1)} {'\u00B7'} {profile.city} {'\u00B7'}{' '}
+        {currentUV >= 3 ? 'Synthesis active' : 'No synthesis \u2014 UV too low'}
+      </Text>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* LOG MODE */}
         {mode === 'log' && (
           <>
+            {/* When / Time picker */}
+            <View style={styles.whenCard}>
+              <View>
+                <Text style={styles.whenLabel}>When</Text>
+                <Text style={styles.whenValue}>Now {'\u00B7'} {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}</Text>
+              </View>
+              <TouchableOpacity>
+                <Text style={styles.editTimeLink}>Edit time {'\u25BE'}</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* UV Display */}
             <View style={styles.uvRow}>
               <Text style={styles.uvLabel}>Current UV</Text>
@@ -214,8 +229,10 @@ export default function SessionScreen() {
 
             {/* IU Estimate */}
             <View style={styles.estimateCard}>
-              <Text style={styles.estimateLabel}>Estimated vitamin D</Text>
               <Text style={styles.estimateValue}>{formatIURange(estimatedIU)}</Text>
+              <Text style={styles.estimateLabel}>
+                IU estimated {'\u00B7'} {'\u00B1'}15% individual variance
+              </Text>
             </View>
 
             {/* Burn Warning Bar */}
@@ -238,9 +255,11 @@ export default function SessionScreen() {
             </View>
 
             {/* Actions */}
-            <View style={styles.actions}>
-              <PrimaryBtn title="Log Session" onPress={logSession} />
-              <GhostBtn title="Start live session instead" onPress={startLiveSession} />
+            <View style={styles.actionsRow}>
+              <GhostBtn title={'\u25B6 Start live'} onPress={startLiveSession} />
+              <View style={{ flex: 2 }}>
+                <PrimaryBtn title="Log Session" onPress={logSession} />
+              </View>
             </View>
           </>
         )}
@@ -322,9 +341,11 @@ export default function SessionScreen() {
               Not medical advice. Estimates based on population averages.
             </Text>
 
-            <View style={styles.actions}>
-              <PrimaryBtn title={'\uD83D\uDCE4 Share'} onPress={handleShare} />
-              <GhostBtn title="Done" onPress={handleDone} />
+            <View style={styles.actionsRow}>
+              <GhostBtn title={'\uD83D\uDCE4 Share'} onPress={handleShare} />
+              <View style={{ flex: 2 }}>
+                <PrimaryBtn title="Done \u2713" onPress={handleDone} />
+              </View>
             </View>
           </View>
         )}
@@ -367,6 +388,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.grey,
     fontWeight: '600',
+  },
+  headerSubline: {
+    fontSize: 12,
+    color: Colors.dim,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 4,
   },
   title: {
     fontSize: 18,
@@ -520,6 +548,37 @@ const styles = StyleSheet.create({
   actions: {
     gap: 8,
     marginTop: 8,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  whenCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 12,
+  },
+  whenLabel: {
+    fontSize: 11,
+    color: Colors.dim,
+    marginBottom: 2,
+  },
+  whenValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  editTimeLink: {
+    fontSize: 11,
+    color: Colors.orange,
+    fontWeight: '600',
   },
   // Live mode
   liveContainer: {
