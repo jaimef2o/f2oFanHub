@@ -44,7 +44,7 @@ export default function HomeScreen() {
 
   const now = new Date();
   const currentHour = now.getHours();
-  const minutesLeftInWindow = window.hasWindow && currentHour < window.end
+  const minutesLeftInWindow = (window.hasWindow && currentHour < window.end)
     ? (window.end - currentHour) * 60 - now.getMinutes()
     : 0;
 
