@@ -30,6 +30,7 @@
       "package": "app.helio.tracker",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
+    "jsEngine": "hermes",
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
