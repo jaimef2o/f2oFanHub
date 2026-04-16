@@ -4,10 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { Ring } from '@/components/ui/Ring';
-import { Sun } from '@/components/ui/Sun';
 import { Tag } from '@/components/ui/Tag';
 import { HabitCalendar, buildHabitDays } from '@/components/ui/HabitCalendar';
-import { PrimaryBtn } from '@/components/ui/PrimaryBtn';
 import { useUserStore } from '@/store/userStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -16,17 +14,18 @@ import {
   fetchUVForecast,
   getCurrentUV,
   getSynthesisWindow,
+  getPeakUV,
   getSolarStatus,
   getSolarStatusColor,
   getSolarStatusLabel,
 } from '@/lib/openMeteoApi';
-import { formatIURange, iuRange } from '@/lib/iuEngine';
-import { formatHour, formatTimeWindow } from '@/lib/uvCalculator';
+import { formatIURange } from '@/lib/iuEngine';
+import { formatTimeWindow } from '@/lib/uvCalculator';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { profile } = useUserStore();
-  const { dailyLogs, streak, addSupplement } = useSessionStore();
+  const { dailyLogs, streak, addSupplement, updateDailyLog: updateLog } = useSessionStore();
   const { uvData, setUVData } = useSettingsStore();
   const { friends } = useSocialStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -53,10 +52,16 @@ export default function HomeScreen() {
     try {
       const data = await fetchUVForecast(profile.latitude, profile.longitude);
       setUVData(data);
+
+      // Auto-detect cloud days: if today's peak UV < 2, mark as cloud day
+      const peak = getPeakUV(data, 0);
+      if (peak.uv < 2) {
+        updateLog(today, { cloudDay: true });
+      }
     } catch {
       // Silently fail — will use cached data
     }
-  }, [profile.latitude, profile.longitude, setUVData]);
+  }, [profile.latitude, profile.longitude, setUVData, today, updateLog]);
 
   useEffect(() => {
     fetchData();

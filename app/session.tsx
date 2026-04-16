@@ -14,6 +14,7 @@ import { BodyFigure } from '@/components/ui/BodyFigure';
 import { PrimaryBtn } from '@/components/ui/PrimaryBtn';
 import { GhostBtn } from '@/components/ui/GhostBtn';
 import { ShareCard } from '@/components/ui/ShareCard';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 import { Ring } from '@/components/ui/Ring';
 import { useUserStore } from '@/store/userStore';
 import { useSessionStore, type SunSession } from '@/store/sessionStore';
@@ -33,7 +34,7 @@ export default function SessionScreen() {
   const router = useRouter();
   const { profile, addLifetimeIU, earnBadge } = useUserStore();
   const { addSession, lastSituation, lastDuration, streak } = useSessionStore();
-  const { uvData, hasCompletedFirstSession, setFirstSessionComplete, setShowPaywall } =
+  const { uvData, hasCompletedFirstSession, setFirstSessionComplete, setPremium } =
     useSettingsStore();
 
   const [mode, setMode] = useState<Mode>('log');
@@ -41,6 +42,10 @@ export default function SessionScreen() {
   const [situation, setSituation] = useState(lastSituation || 'face_arms');
   const [sunscreen, setSunscreen] = useState<SunscreenId>('none');
   const [showShareCard, setShowShareCard] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [useCustomTime, setUseCustomTime] = useState(false);
+  const [customHour, setCustomHour] = useState(new Date().getHours());
+  const [customMinute, setCustomMinute] = useState(new Date().getMinutes());
 
   // Live session state
   const [liveSeconds, setLiveSeconds] = useState(0);
@@ -95,13 +100,20 @@ export default function SessionScreen() {
     addSession(session);
     addLifetimeIU(iu);
     earnBadge('first_session');
+
+    // Check streak-based badges
+    const newStreak = streak.currentStreak + 1;
+    if (newStreak >= 7) {
+      earnBadge('week_warrior');
+    }
+
     setSessionResult(session);
     setMode('summary');
 
     if (!hasCompletedFirstSession) {
       setFirstSessionComplete();
-      // Show paywall after a delay
-      setTimeout(() => setShowPaywall(true), 2000);
+      // Show paywall after user sees their summary
+      setTimeout(() => setShowPaywall(true), 1500);
     }
   };
 
@@ -152,12 +164,37 @@ export default function SessionScreen() {
             <View style={styles.whenCard}>
               <View>
                 <Text style={styles.whenLabel}>When</Text>
-                <Text style={styles.whenValue}>Now {'\u00B7'} {new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}</Text>
+                <Text style={styles.whenValue}>
+                  {useCustomTime
+                    ? `${customHour.toString().padStart(2, '0')}:${customMinute.toString().padStart(2, '0')}`
+                    : `Now \u00B7 ${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`}
+                </Text>
               </View>
-              <TouchableOpacity>
-                <Text style={styles.editTimeLink}>Edit time {'\u25BE'}</Text>
+              <TouchableOpacity onPress={() => setUseCustomTime(!useCustomTime)}>
+                <Text style={styles.editTimeLink}>
+                  {useCustomTime ? 'Use now' : 'Edit time \u25BE'}
+                </Text>
               </TouchableOpacity>
             </View>
+            {useCustomTime && (
+              <View style={styles.timePickerRow}>
+                <TouchableOpacity
+                  style={styles.timeBtn}
+                  onPress={() => setCustomHour(Math.max(0, customHour - 1))}
+                >
+                  <Text style={styles.timeBtnText}>{'\u2212'}</Text>
+                </TouchableOpacity>
+                <Text style={styles.timeDisplay}>
+                  {customHour.toString().padStart(2, '0')}:{customMinute.toString().padStart(2, '0')}
+                </Text>
+                <TouchableOpacity
+                  style={styles.timeBtn}
+                  onPress={() => setCustomHour(Math.min(23, customHour + 1))}
+                >
+                  <Text style={styles.timeBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* UV Display */}
             <View style={styles.uvRow}>
@@ -368,6 +405,20 @@ export default function SessionScreen() {
           city={profile.city}
         />
       )}
+
+      {/* Paywall — triggers after first completed session */}
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onStartTrial={() => {
+          setPremium('trial');
+          setShowPaywall(false);
+        }}
+        onLifetime={() => {
+          setPremium('premium');
+          setShowPaywall(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -580,6 +631,38 @@ const styles = StyleSheet.create({
     color: Colors.orange,
     fontWeight: '600',
   },
+  timePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 12,
+  },
+  timeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.cardHi,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeBtnText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  timeDisplay: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.orange,
+    minWidth: 80,
+    textAlign: 'center',
+  },
   // Live mode
   liveContainer: {
     alignItems: 'center',
@@ -594,7 +677,7 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: '800',
     color: Colors.white,
-    fontVariant: ['tabular-nums'],
+    letterSpacing: -1,
   },
   liveSubLabel: {
     fontSize: 14,

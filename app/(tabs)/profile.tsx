@@ -9,23 +9,12 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { SKIN_TYPES } from '@/constants/skinTypes';
 import { formatIURange } from '@/lib/iuEngine';
+import { ALL_BADGES, checkBadgeEligibility } from '@/lib/badges';
 
-interface Badge {
-  id: string;
-  emoji: string;
-  title: string;
-}
-
-const ALL_BADGES: Badge[] = [
-  { id: 'first_session', emoji: '\uD83C\uDF05', title: 'First Session' },
-  { id: 'week_warrior', emoji: '\uD83D\uDD25', title: 'Week Warrior' },
-  { id: 'top3', emoji: '\uD83C\uDFC6', title: 'Leaderboard Top 3' },
-  { id: 'blood_test', emoji: '\uD83E\uDDEC', title: 'Blood Test Hero' },
-  { id: 'med_myth', emoji: '\u2600\uFE0F', title: 'Mediterranean Myth Buster' },
-];
+// Badge definitions imported from @/lib/badges
 
 export default function ProfileScreen() {
-  const { profile, setProfile, bloodTests, addBloodTest, badgesEarned, lifetimeIU } =
+  const { profile, setProfile, bloodTests, addBloodTest, badgesEarned, lifetimeIU, earnBadge } =
     useUserStore();
   const { streak } = useSessionStore();
   const { premiumStatus, setPremium, notificationsEnabled, setNotifications, units, setUnits } =
@@ -67,12 +56,26 @@ export default function ProfileScreen() {
 
   const saveBloodTest = () => {
     if (!btInput) return;
-    const nmol = btUnit === 'nmol' ? parseFloat(btInput) : (parseFloat(btInput)) * 2.496;
+    const nmol = btUnit === 'nmol' ? parseFloat(btInput) : parseFloat(btInput) * 2.496;
     addBloodTest({
       date: new Date().toISOString().split('T')[0],
       valueNmol: nmol,
       notes: '',
     });
+    earnBadge('blood_test');
+
+    // Check Mediterranean Myth Buster
+    const newBadges = checkBadgeEligibility({
+      sessionsCount: 1,
+      currentStreak: streak.currentStreak,
+      leaderboardRank: 0,
+      bloodTestCount: bloodTests.length + 1,
+      city: profile.city,
+      latestBloodTest: nmol,
+      alreadyEarned: badgesEarned,
+    });
+    newBadges.forEach((b) => earnBadge(b));
+
     setBtInput('');
   };
 

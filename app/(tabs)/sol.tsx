@@ -19,7 +19,7 @@ import {
   getSolarStatusLabel,
 } from '@/lib/openMeteoApi';
 import { getSeasonLabel, daysUntilSeason, formatHour } from '@/lib/uvCalculator';
-import { formatIURange, calculateSessionIU } from '@/lib/iuEngine';
+import { formatIURange } from '@/lib/iuEngine';
 
 export default function SolScreen() {
   const { profile } = useUserStore();

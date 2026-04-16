@@ -78,19 +78,19 @@ export default function OnboardingScreen() {
     }
   }, []);
 
-  const fetchUV = useCallback(async () => {
+  const fetchUV = useCallback(async (lat: number, lon: number) => {
     try {
       setLoading(true);
-      const data = await fetchUVForecast(detectedLat, detectedLon);
+      const data = await fetchUVForecast(lat, lon);
       setUVData(data);
       const uv = getCurrentUV(data);
       setUvIndex(uv);
-      const window = getSynthesisWindow(data);
-      setWindowStart(window.start);
-      setWindowEnd(window.end);
-      setHasWindow(window.hasWindow);
+      const win = getSynthesisWindow(data);
+      setWindowStart(win.start);
+      setWindowEnd(win.end);
+      setHasWindow(win.hasWindow);
     } catch {
-      // Fallback UV
+      // Fallback UV for offline / API errors
       setUvIndex(5);
       setWindowStart(12);
       setWindowEnd(15);
@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
     } finally {
       setLoading(false);
     }
-  }, [detectedLat, detectedLon, setUVData]);
+  }, [setUVData]);
 
   useEffect(() => {
     if (step === 1) {
@@ -108,9 +108,11 @@ export default function OnboardingScreen() {
 
   useEffect(() => {
     if (step === 3) {
-      fetchUV();
+      fetchUV(detectedLat, detectedLon);
     }
-  }, [step, fetchUV]);
+    // Only re-fetch when we arrive at step 3
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const finishOnboarding = () => {
     setProfile({
