@@ -153,7 +153,7 @@ export default function SessionScreen() {
       </View>
       <Text style={styles.headerSubline}>
         UV {currentUV.toFixed(1)} {'\u00B7'} {profile.city} {'\u00B7'}{' '}
-        {currentUV >= 3 ? 'Synthesis active' : 'No synthesis \u2014 UV too low'}
+        {currentUV >= 3 ? 'Synthesis active' : 'No synthesis — UV too low'}
       </Text>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

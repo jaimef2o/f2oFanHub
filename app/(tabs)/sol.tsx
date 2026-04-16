@@ -211,7 +211,7 @@ export default function SolScreen() {
                     </View>
                     {window.hasWindow && (
                       <Text style={styles.forecastWindow}>
-                        {formatHour(window.start)}\u2013{formatHour(window.end)}
+                        {formatHour(window.start)}{'–'}{formatHour(window.end)}
                       </Text>
                     )}
                   </View>

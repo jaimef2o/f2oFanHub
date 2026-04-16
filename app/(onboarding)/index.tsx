@@ -278,7 +278,7 @@ export default function OnboardingScreen() {
                       detectedCity === city.name && styles.cityChipTextSelected,
                     ]}
                   >
-                    {city.name} ({Math.round(city.lat)}\u00B0N)
+                    {city.name} ({Math.round(city.lat)}{'°'}N)
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -364,7 +364,7 @@ export default function OnboardingScreen() {
                   <View style={styles.ahaCard}>
                     <Text style={styles.ahaLabel}>Optimal window</Text>
                     <Text style={styles.ahaWindow}>
-                      {formatHour(windowStart)}\u2013{formatHour(windowEnd)}
+                      {formatHour(windowStart)}{'–'}{formatHour(windowEnd)}
                     </Text>
                   </View>
                 )}
@@ -393,7 +393,7 @@ export default function OnboardingScreen() {
                 )}
 
                 <View style={styles.ctaContainer}>
-                  <PrimaryBtn title="Start tracking \u2192" onPress={finishOnboarding} />
+                  <PrimaryBtn title="Start tracking →" onPress={finishOnboarding} />
                 </View>
               </>
             )}

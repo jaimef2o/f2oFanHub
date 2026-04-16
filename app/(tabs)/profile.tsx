@@ -95,7 +95,7 @@ export default function ProfileScreen() {
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{profile.name || 'You'}</Text>
               <Text style={styles.profileMeta}>
-                {goalLabel} \u00B7 {profile.city} \u00B7 Skin type{' '}
+                {goalLabel} {'·'} {profile.city} {'·'} Skin type{' '}
                 {skinType?.numeral ?? 'III'}
               </Text>
             </View>
@@ -166,7 +166,7 @@ export default function ProfileScreen() {
               style={[styles.levelCard, { borderColor: `${level.color}40` }]}
             >
               <Text style={[styles.levelLabel, { color: level.color }]}>
-                {level.label} \u00B7 {nmolValue.toFixed(0)} nmol/L
+                {level.label} {'·'} {nmolValue.toFixed(0)} nmol/L
               </Text>
               <View style={styles.levelTrack}>
                 <View
@@ -183,7 +183,7 @@ export default function ProfileScreen() {
           ) : lastTest ? (
             <View style={[styles.levelCard, { borderColor: `${level.color}40` }]}>
               <Text style={[styles.levelLabel, { color: level.color }]}>
-                {level.label} \u00B7 {lastTest.valueNmol.toFixed(0)} nmol/L
+                {level.label} {'·'} {lastTest.valueNmol.toFixed(0)} nmol/L
               </Text>
               <View style={styles.levelTrack}>
                 <View
@@ -200,7 +200,7 @@ export default function ProfileScreen() {
           ) : null}
 
           <Text style={styles.disclaimer}>
-            Not medical advice \u00B7 Retest in ~90 days
+            Not medical advice {'·'} Retest in ~90 days
           </Text>
         </View>
 
@@ -283,7 +283,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.footerDisclaimer}>
-          Helio \u00B7 Not medical advice \u00B7 Privacy Policy \u00B7 v1.0
+          Helio {'·'} Not medical advice {'·'} Privacy Policy {'·'} v1.0
         </Text>
       </ScrollView>
 
