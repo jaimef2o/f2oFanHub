@@ -1,0 +1,621 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Colors } from '@/constants/colors';
+import { BodyFigure } from '@/components/ui/BodyFigure';
+import { PrimaryBtn } from '@/components/ui/PrimaryBtn';
+import { GhostBtn } from '@/components/ui/GhostBtn';
+import { ShareCard } from '@/components/ui/ShareCard';
+import { Ring } from '@/components/ui/Ring';
+import { useUserStore } from '@/store/userStore';
+import { useSessionStore, type SunSession } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import {
+  calculateSessionIU,
+  formatIURange,
+  burnProgress,
+  calculateIUPerMinute,
+} from '@/lib/iuEngine';
+import { getCurrentUV } from '@/lib/openMeteoApi';
+import { SUNSCREEN_OPTIONS, type SunscreenId } from '@/constants/situations';
+
+type Mode = 'log' | 'live' | 'summary';
+
+export default function SessionScreen() {
+  const router = useRouter();
+  const { profile, addLifetimeIU, earnBadge } = useUserStore();
+  const { addSession, lastSituation, lastDuration, streak } = useSessionStore();
+  const { uvData, hasCompletedFirstSession, setFirstSessionComplete, setShowPaywall } =
+    useSettingsStore();
+
+  const [mode, setMode] = useState<Mode>('log');
+  const [duration, setDuration] = useState(lastDuration || 20);
+  const [situation, setSituation] = useState(lastSituation || 'face_arms');
+  const [sunscreen, setSunscreen] = useState<SunscreenId>('none');
+  const [showShareCard, setShowShareCard] = useState(false);
+
+  // Live session state
+  const [liveSeconds, setLiveSeconds] = useState(0);
+  const [liveIU, setLiveIU] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Summary state
+  const [sessionResult, setSessionResult] = useState<SunSession | null>(null);
+
+  const currentUV = uvData ? getCurrentUV(uvData) : 0;
+
+  // Calculate IU estimate for log mode
+  const estimatedIU = calculateSessionIU(currentUV, duration, profile.skinType, situation, sunscreen);
+  const burn = burnProgress(duration, currentUV, profile.skinType, sunscreen);
+
+  // Live session IU per minute
+  const iuPerMin = calculateIUPerMinute(currentUV, profile.skinType, situation, sunscreen);
+
+  const startLiveSession = () => {
+    setMode('live');
+    setLiveSeconds(0);
+    setLiveIU(0);
+    timerRef.current = setInterval(() => {
+      setLiveSeconds((s) => s + 1);
+      setLiveIU((iu) => iu + iuPerMin / 60);
+    }, 1000);
+  };
+
+  const endLiveSession = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const durationMin = Math.round(liveSeconds / 60);
+    const iu = Math.round(liveIU);
+    completeSession(durationMin, iu);
+  };
+
+  const logSession = () => {
+    completeSession(duration, estimatedIU);
+  };
+
+  const completeSession = (durationMin: number, iu: number) => {
+    const session: SunSession = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split('T')[0],
+      startTime: new Date().toISOString(),
+      durationMin,
+      situation,
+      sunscreen,
+      uvIndex: currentUV,
+      iuProduced: iu,
+    };
+
+    addSession(session);
+    addLifetimeIU(iu);
+    earnBadge('first_session');
+    setSessionResult(session);
+    setMode('summary');
+
+    if (!hasCompletedFirstSession) {
+      setFirstSessionComplete();
+      // Show paywall after a delay
+      setTimeout(() => setShowPaywall(true), 2000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const handleShare = () => {
+    setShowShareCard(true);
+  };
+
+  const handleDone = () => {
+    router.back();
+  };
+
+  const formatLiveTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const liveBurn = burnProgress(liveSeconds / 60, currentUV, profile.skinType, sunscreen);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.closeBtn}>{'\u2715'}</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>
+          {mode === 'log' ? 'Log Sun Session' : mode === 'live' ? 'Live Session' : 'Session Complete'}
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* LOG MODE */}
+        {mode === 'log' && (
+          <>
+            {/* UV Display */}
+            <View style={styles.uvRow}>
+              <Text style={styles.uvLabel}>Current UV</Text>
+              <Text style={styles.uvValue}>{currentUV.toFixed(1)}</Text>
+            </View>
+
+            {/* Duration Slider */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Duration</Text>
+              <View style={styles.durationRow}>
+                <TouchableOpacity
+                  onPress={() => setDuration(Math.max(5, duration - 5))}
+                  style={styles.durationBtn}
+                >
+                  <Text style={styles.durationBtnText}>{'\u2212'}</Text>
+                </TouchableOpacity>
+                <Text style={styles.durationValue}>{duration} min</Text>
+                <TouchableOpacity
+                  onPress={() => setDuration(Math.min(120, duration + 5))}
+                  style={styles.durationBtn}
+                >
+                  <Text style={styles.durationBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Simple slider track */}
+              <View style={styles.sliderTrack}>
+                <View
+                  style={[
+                    styles.sliderFill,
+                    { width: `${((duration - 5) / 115) * 100}%` },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Body Exposure */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Body exposure</Text>
+              <BodyFigure selected={situation} onSelect={setSituation} />
+            </View>
+
+            {/* Sunscreen */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Sunscreen</Text>
+              <View style={styles.sunscreenRow}>
+                {SUNSCREEN_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[
+                      styles.sunscreenChip,
+                      sunscreen === opt.id && styles.sunscreenChipActive,
+                    ]}
+                    onPress={() => setSunscreen(opt.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.sunscreenText,
+                        sunscreen === opt.id && styles.sunscreenTextActive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* IU Estimate */}
+            <View style={styles.estimateCard}>
+              <Text style={styles.estimateLabel}>Estimated vitamin D</Text>
+              <Text style={styles.estimateValue}>{formatIURange(estimatedIU)}</Text>
+            </View>
+
+            {/* Burn Warning Bar */}
+            <View style={styles.burnSection}>
+              <Text style={styles.burnLabel}>Sunburn risk</Text>
+              <View style={styles.burnTrack}>
+                <View
+                  style={[
+                    styles.burnFill,
+                    {
+                      width: `${burn * 100}%`,
+                      backgroundColor: burn > 0.7 ? Colors.red : burn > 0.4 ? Colors.orange : Colors.green,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.burnText}>
+                {burn > 0.7 ? 'High risk — reduce time!' : burn > 0.4 ? 'Moderate — be careful' : 'Safe'}
+              </Text>
+            </View>
+
+            {/* Actions */}
+            <View style={styles.actions}>
+              <PrimaryBtn title="Log Session" onPress={logSession} />
+              <GhostBtn title="Start live session instead" onPress={startLiveSession} />
+            </View>
+          </>
+        )}
+
+        {/* LIVE MODE */}
+        {mode === 'live' && (
+          <View style={styles.liveContainer}>
+            <View style={styles.liveTimer}>
+              <Text style={styles.liveTime}>{formatLiveTime(liveSeconds)}</Text>
+              <Text style={styles.liveSubLabel}>elapsed</Text>
+            </View>
+
+            <View style={styles.liveStats}>
+              <View style={styles.liveStat}>
+                <Text style={styles.liveStatValue}>{formatIURange(Math.round(liveIU))}</Text>
+                <Text style={styles.liveStatLabel}>produced</Text>
+              </View>
+              <View style={styles.liveStat}>
+                <Text style={styles.liveStatValue}>UV {currentUV.toFixed(1)}</Text>
+                <Text style={styles.liveStatLabel}>current</Text>
+              </View>
+              <View style={styles.liveStat}>
+                <Text style={styles.liveStatValue}>{iuPerMin.toFixed(0)} IU/min</Text>
+                <Text style={styles.liveStatLabel}>rate</Text>
+              </View>
+            </View>
+
+            {/* Live burn bar */}
+            <View style={styles.burnSection}>
+              <Text style={styles.burnLabel}>Sunburn risk</Text>
+              <View style={styles.burnTrack}>
+                <View
+                  style={[
+                    styles.burnFill,
+                    {
+                      width: `${liveBurn * 100}%`,
+                      backgroundColor:
+                        liveBurn > 0.7 ? Colors.red : liveBurn > 0.4 ? Colors.orange : Colors.green,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <PrimaryBtn title="End Session" onPress={endLiveSession} color={Colors.red} />
+          </View>
+        )}
+
+        {/* SUMMARY MODE */}
+        {mode === 'summary' && sessionResult && (
+          <View style={styles.summaryContainer}>
+            <Ring progress={1} size={160} color={Colors.green}>
+              <Text style={styles.summaryEmoji}>{'\u2705'}</Text>
+            </Ring>
+
+            <Text style={styles.summaryIU}>{formatIURange(sessionResult.iuProduced)}</Text>
+            <Text style={styles.summaryLabel}>vitamin D produced</Text>
+
+            <View style={styles.summaryStats}>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatValue}>{sessionResult.durationMin} min</Text>
+                <Text style={styles.summaryStatLabel}>Duration</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatValue}>UV {sessionResult.uvIndex.toFixed(1)}</Text>
+                <Text style={styles.summaryStatLabel}>UV Index</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatValue}>
+                  {SUNSCREEN_OPTIONS.find((o) => o.id === sessionResult.sunscreen)?.label}
+                </Text>
+                <Text style={styles.summaryStatLabel}>Sunscreen</Text>
+              </View>
+            </View>
+
+            <Text style={styles.notMedical}>
+              Not medical advice. Estimates based on population averages.
+            </Text>
+
+            <View style={styles.actions}>
+              <PrimaryBtn title={'\uD83D\uDCE4 Share'} onPress={handleShare} />
+              <GhostBtn title="Done" onPress={handleDone} />
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Share Card Modal */}
+      {sessionResult && (
+        <ShareCard
+          visible={showShareCard}
+          onClose={() => setShowShareCard(false)}
+          onShare={() => {
+            setShowShareCard(false);
+            Alert.alert('Shared!', 'Your session card has been shared.');
+          }}
+          iuProduced={sessionResult.iuProduced}
+          durationMin={sessionResult.durationMin}
+          uvIndex={sessionResult.uvIndex}
+          streak={streak.currentStreak}
+          situationId={sessionResult.situation}
+          city={profile.city}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  closeBtn: {
+    fontSize: 20,
+    color: Colors.grey,
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  uvRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 20,
+  },
+  uvLabel: {
+    fontSize: 14,
+    color: Colors.grey,
+    fontWeight: '600',
+  },
+  uvValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.white,
+  },
+  section: {
+    marginBottom: 20,
+    gap: 10,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.dim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  durationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationBtnText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  durationValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: Colors.white,
+    minWidth: 100,
+    textAlign: 'center',
+  },
+  sliderTrack: {
+    height: 6,
+    backgroundColor: Colors.cardHi,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  sliderFill: {
+    height: 6,
+    backgroundColor: Colors.orange,
+    borderRadius: 3,
+  },
+  sunscreenRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sunscreenChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  sunscreenChipActive: {
+    borderColor: Colors.orange,
+    backgroundColor: Colors.cardHi,
+  },
+  sunscreenText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.grey,
+  },
+  sunscreenTextActive: {
+    color: Colors.orange,
+  },
+  estimateCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 4,
+  },
+  estimateLabel: {
+    fontSize: 12,
+    color: Colors.dim,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  estimateValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.green,
+  },
+  burnSection: {
+    marginBottom: 20,
+    gap: 8,
+  },
+  burnLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.grey,
+  },
+  burnTrack: {
+    height: 8,
+    backgroundColor: Colors.cardHi,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  burnFill: {
+    height: 8,
+    borderRadius: 4,
+  },
+  burnText: {
+    fontSize: 12,
+    color: Colors.grey,
+  },
+  actions: {
+    gap: 8,
+    marginTop: 8,
+  },
+  // Live mode
+  liveContainer: {
+    alignItems: 'center',
+    gap: 32,
+    paddingVertical: 20,
+  },
+  liveTimer: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  liveTime: {
+    fontSize: 64,
+    fontWeight: '800',
+    color: Colors.white,
+    fontVariant: ['tabular-nums'],
+  },
+  liveSubLabel: {
+    fontSize: 14,
+    color: Colors.dim,
+    fontWeight: '600',
+  },
+  liveStats: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  liveStat: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  liveStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  liveStatLabel: {
+    fontSize: 11,
+    color: Colors.dim,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  // Summary
+  summaryContainer: {
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 20,
+  },
+  summaryEmoji: {
+    fontSize: 40,
+  },
+  summaryIU: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: Colors.green,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: Colors.grey,
+    fontWeight: '500',
+  },
+  summaryStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  summaryStat: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryStatValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  summaryStatLabel: {
+    fontSize: 11,
+    color: Colors.dim,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: Colors.border,
+  },
+  notMedical: {
+    fontSize: 11,
+    color: Colors.dim,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+  },
+});

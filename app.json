@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Helio",
+    "slug": "helio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "helio",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#07111A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.helio.tracker",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Helio needs your location to calculate UV index and vitamin D synthesis potential.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#07111A"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "app.helio.tracker",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-notifications",
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ]
+    ]
+  }
+}
